@@ -1,0 +1,12 @@
+{
+  "name": "barbearia",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n \"API:3001,Web:5173\" -c cyan,magenta \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
