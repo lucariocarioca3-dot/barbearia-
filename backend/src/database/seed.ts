@@ -1,10 +1,15 @@
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { initializeDatabase, getDb } from './connection';
 
 export function seedIfEmpty(adminEmail: string, adminPassword: string): boolean {
-  const dataDir = path.resolve(__dirname, '..', '..', 'data');
+  const dataDir = process.env.DB_PATH
+    ? path.dirname(process.env.DB_PATH)
+    : process.env.NODE_ENV === 'production'
+      ? path.join(os.tmpdir(), 'barbearia')
+      : path.resolve(__dirname, '..', '..', 'data');
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
