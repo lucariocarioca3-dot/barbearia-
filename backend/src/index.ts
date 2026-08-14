@@ -17,7 +17,9 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 const dataDir = process.env.DB_PATH
   ? path.dirname(process.env.DB_PATH)
-  : path.resolve(__dirname, '..', 'data');
+  : isProduction
+    ? path.join(require('os').tmpdir(), 'barbearia')
+    : path.resolve(__dirname, '..', 'data');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
@@ -60,6 +62,10 @@ if (isProduction) {
   }
 }
 
-app.listen(PORT, () => {
-  console.log(`Backend rodando em http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Backend rodando em http://localhost:${PORT}`);
+  });
+}
+
+export default app;

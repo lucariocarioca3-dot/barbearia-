@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "builds": [
+    {
+      "src": "backend/dist/index.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["frontend/dist/**"],
+        "runtime": "nodejs22.x"
+      }
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "backend/dist/index.js" }
+  ]
+}

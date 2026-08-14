@@ -1,8 +1,12 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import os from 'os';
 import fs from 'fs';
 
-const dbPath = process.env.DB_PATH || path.resolve(__dirname, '..', '..', 'data', 'barbearia.db');
+const dbPath = process.env.DB_PATH
+  || (process.env.NODE_ENV === 'production'
+    ? path.join(os.tmpdir(), 'barbearia', 'barbearia.db')
+    : path.resolve(__dirname, '..', '..', 'data', 'barbearia.db'));
 const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
