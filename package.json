@@ -4,7 +4,12 @@
   "scripts": {
     "dev": "concurrently -n \"API:3001,Web:5173\" -c cyan,magenta \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
     "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev"
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm --prefix frontend ci && npm --prefix frontend run build && npm --prefix backend ci && npm --prefix backend run build",
+    "start": "npm --prefix backend start"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

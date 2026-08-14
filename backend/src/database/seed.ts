@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { initializeDatabase, getDb } from './connection';
 
-function seed() {
+export function seedIfEmpty(adminEmail: string, adminPassword: string): boolean {
   const dataDir = path.resolve(__dirname, '..', '..', 'data');
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
@@ -15,12 +15,12 @@ function seed() {
   const adminExists = db.prepare('SELECT id FROM admins LIMIT 1').get();
   if (adminExists) {
     console.log('Banco já populado. Pulando seed.');
-    return;
+    return false;
   }
 
-  const hashedPassword = bcrypt.hashSync('admin123', 10);
+  const hashedPassword = bcrypt.hashSync(adminPassword, 10);
   db.prepare('INSERT INTO admins (name, email, password) VALUES (?, ?, ?)').run(
-    'Administrador', 'admin@barbearia.com', hashedPassword
+    'Administrador', adminEmail, hashedPassword
   );
 
   const barbers = [
@@ -68,7 +68,10 @@ function seed() {
     }
   }
 
-  console.log('Seed concluído com sucesso!');
+  return true;
 }
 
-seed();
+if (require.main === module) {
+  const seeded = seedIfEmpty('admin@barbearia.com', 'admin123');
+  console.log(seeded ? 'Seed concluído com sucesso!' : 'Nada a fazer.');
+}
