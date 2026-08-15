@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -27,6 +27,10 @@ function onVideoLoadedData() {
   setReady()
 }
 
+function onVideoLoadedMetadata() {
+  setReady()
+}
+
 function onVideoError() {
   videoError.value = true
   setReady()
@@ -38,13 +42,17 @@ function startFallback() {
   }, 3000)
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await nextTick()
   if (videoEl.value) {
-    if (videoEl.value.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+    // Check multiple ready states for cached loads
+    if (videoEl.value.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
       setReady()
     } else {
       startFallback()
     }
+  } else {
+    startFallback()
   }
 })
 
@@ -66,6 +74,7 @@ onUnmounted(() => {
       poster="/imagens/hero-poster.png"
       @canplay="onVideoCanPlay"
       @loadeddata="onVideoLoadedData"
+      @loadedmetadata="onVideoLoadedMetadata"
       @error="onVideoError"
     >
       <source :src="heroVideo" />
