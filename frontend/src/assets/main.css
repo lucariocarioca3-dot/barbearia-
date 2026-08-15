@@ -562,6 +562,10 @@ table tr:hover td {
   padding: 120px 20px;
   overflow: hidden;
   color: var(--white);
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  width: 100vw;
+  max-width: none;
 }
 
 .hero-video {
@@ -569,8 +573,6 @@ table tr:hover td {
   inset: 0;
   width: 100%;
   height: 100%;
-  min-width: 100%;
-  min-height: 100%;
   object-fit: cover;
   z-index: 0;
 }
