@@ -67,7 +67,13 @@ if (isProduction) {
     // aponta para hashes de bundles de builds antigos — a causa da tela branca
     // com o erro "Failed to load module script ... MIME type text/html".
     app.get(/^\/(?!api\/)[^.]*$/, (_req, res) => {
-      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      // no-store: o index.html é baixado inteiro a cada acesso, SEM revalidação
+      // por ETag. Isso é essencial porque o ETag gerado por res.sendFile
+      // (tamanho + mtime) é idêntico entre builds na Vercel (o mtime do
+      // arquivo dentro da função serverless é constante), então um
+      // "must-revalidate" resultaria em 304 eterno com o HTML stale — a causa
+      // da tela branca com 404 em bundles de builds antigos.
+      res.setHeader('Cache-Control', 'no-store');
       res.sendFile(path.join(distDir, 'index.html'), { cacheControl: false });
     });
 
