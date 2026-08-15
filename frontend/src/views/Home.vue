@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -19,15 +19,7 @@ function setReady() {
   }
 }
 
-function onVideoCanPlay() {
-  setReady()
-}
-
-function onVideoLoadedData() {
-  setReady()
-}
-
-function onVideoLoadedMetadata() {
+function onVideoEvent() {
   setReady()
 }
 
@@ -36,23 +28,16 @@ function onVideoError() {
   setReady()
 }
 
-function startFallback() {
+onMounted(() => {
+  // Start fallback timer immediately
   fallbackTimer = setTimeout(() => {
     setReady()
   }, 3000)
-}
 
-onMounted(async () => {
-  await nextTick()
-  if (videoEl.value) {
-    // Check multiple ready states for cached loads
-    if (videoEl.value.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-      setReady()
-    } else {
-      startFallback()
-    }
-  } else {
-    startFallback()
+  // Check immediately if video is already ready (cached)
+  const el = videoEl.value
+  if (el && el.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+    setReady()
   }
 })
 
@@ -72,9 +57,9 @@ onUnmounted(() => {
       playsinline
       preload="metadata"
       poster="/imagens/hero-poster.png"
-      @canplay="onVideoCanPlay"
-      @loadeddata="onVideoLoadedData"
-      @loadedmetadata="onVideoLoadedMetadata"
+      @canplay="onVideoEvent"
+      @loadeddata="onVideoEvent"
+      @loadedmetadata="onVideoEvent"
       @error="onVideoError"
     >
       <source :src="heroVideo" />
