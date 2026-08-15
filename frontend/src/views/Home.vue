@@ -2,19 +2,35 @@
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const heroVideo = '/imagens/barbearia.mp4'
 </script>
 
 <template>
   <section class="hero">
-    <h1>Corte &amp; Estilo</h1>
-    <p>Agende seu horário com os melhores barbeiros da cidade. Praticidade e estilo em um só lugar.</p>
-    <div class="hero-actions">
-      <button class="btn btn-primary" @click="router.push('/agendar')">
-        Agendar Horário
-      </button>
-      <button class="btn btn-secondary" @click="router.push('/admin/login')">
-        Área do Barbeiro
-      </button>
+    <video
+      class="hero-video"
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="auto"
+      poster="/imagens/hero-poster.png"
+    >
+      <source :src="heroVideo" type="video/mp4" />
+      Seu navegador não suporta vídeo.
+    </video>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1>Corte &amp; Estilo</h1>
+      <p>Agende seu horário com os melhores barbeiros da cidade. Praticidade e estilo em um só lugar.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" @click="router.push('/agendar')">
+          Agendar Horário
+        </button>
+        <button class="btn btn-secondary" @click="router.push('/admin/login')">
+          Área do Barbeiro
+        </button>
+      </div>
     </div>
   </section>
 
