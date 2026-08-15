@@ -103,7 +103,7 @@ input, select, textarea {
   gap: 10px;
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--black);
+  color: #ffffff;
   letter-spacing: -0.5px;
 }
 
@@ -618,7 +618,7 @@ table tr:hover td {
   font-weight: 800;
   letter-spacing: -1px;
   margin-bottom: 12px;
-  color: var(--white);
+  color: #ffffff;
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.45);
 }
 
@@ -670,7 +670,7 @@ footer {
   text-align: center;
   padding: 32px 0;
   border-top: 1px solid var(--gray-200);
-  color: var(--gray-500);
+  color: #ffffff;
   font-size: 0.85rem;
   transition: border-color var(--transition);
 }
