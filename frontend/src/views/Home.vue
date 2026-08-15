@@ -3,8 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const heroVideo = '/imagens/barbearia.mp4'
-const heroVideoWebm = '/imagens/barbearia.webm'
+const heroVideo = 'https://res.cloudinary.com/znu84vmw/video/upload/q_auto,f_auto,w_1920/v1786821294/barbearia.mp4'
 const videoReady = ref(false)
 const videoError = ref(false)
 
@@ -31,7 +30,6 @@ function onVideoError() {
       @canplay="onVideoCanPlay"
       @error="onVideoError"
     >
-      <source :src="heroVideoWebm" type="video/webm" />
       <source :src="heroVideo" type="video/mp4" />
       Seu navegador não suporta vídeo.
     </video>
