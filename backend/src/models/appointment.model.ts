@@ -103,7 +103,7 @@ export const AppointmentModel = {
 
   async getTodayCount(): Promise<number> {
     const row = await get<{ count: number }>(`
-      SELECT COUNT(*) as count FROM appointments WHERE date = CURRENT_DATE AND status != 'cancelled'
+      SELECT COUNT(*) as count FROM appointments WHERE date = CURRENT_DATE::text AND status != 'cancelled'
     `);
     return Number(row?.count ?? 0);
   },
@@ -122,7 +122,7 @@ export const AppointmentModel = {
       FROM appointments a
       JOIN barbers b ON a.barber_id = b.id
       JOIN services s ON a.service_id = s.id
-      WHERE a.date >= CURRENT_DATE AND a.status IN ('scheduled', 'confirmed')
+      WHERE a.date >= CURRENT_DATE::text AND a.status IN ('scheduled', 'confirmed')
       ORDER BY a.date, a.time
       LIMIT ?
     `, [limit]);
