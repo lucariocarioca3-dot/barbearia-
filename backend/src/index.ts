@@ -59,10 +59,24 @@ app.get('/api/health', (_req, res) => {
 if (isProduction) {
   const distDir = path.resolve(__dirname, '..', '..', 'frontend', 'dist');
   if (fs.existsSync(distDir)) {
-    app.use(express.static(distDir));
-    app.get(/^\/(?!api\/).*/, (_req, res) => {
-      res.sendFile(path.join(distDir, 'index.html'));
+    // Rotas de navegação da SPA (HTML) vêm PRIMEIRO, antes do express.static.
+    // Assim o index.html é sempre servido por este handler (e nunca pelo
+    // express.static, que adicionaria Cache-Control: public, max-age=0). O
+    // índice HTML nunca fica preso em cache: cada recarregamento valida com o
+    // servidor (no-cache, must-revalidate), evitando index.html stale que
+    // aponta para hashes de bundles de builds antigos — a causa da tela branca
+    // com o erro "Failed to load module script ... MIME type text/html".
+    app.get(/^\/(?!api\/)[^.]*$/, (_req, res) => {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      res.sendFile(path.join(distDir, 'index.html'), { cacheControl: false });
     });
+
+    // Assets estáticos do build do frontend (bundles com hash, imagens,
+    // favicon etc.). Se um asset não existir (hash de build antigo), o
+    // express.static deixa passar e o Express responde 404 nativo — nunca
+    // devolvemos HTML no lugar de um .js/.css, o que eliminaria o erro de
+    // MIME type.
+    app.use(express.static(distDir));
   } else {
     console.warn(`Diretório do frontend não encontrado: ${distDir}`);
   }
