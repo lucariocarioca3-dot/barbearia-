@@ -1,4 +1,5 @@
-import { getDb } from '../database/connection';
+import { all, get, run } from '../database/connection';
+import type { InValue } from '@libsql/client';
 
 export interface Appointment {
   id?: number;
@@ -21,7 +22,7 @@ export interface AppointmentWithRelations extends Appointment {
 }
 
 export const AppointmentModel = {
-  findAll(filters?: { date?: string; barber_id?: number; status?: string }): AppointmentWithRelations[] {
+  async findAll(filters?: { date?: string; barber_id?: number; status?: string }): Promise<AppointmentWithRelations[]> {
     let sql = `
       SELECT a.*, b.name as barber_name, s.name as service_name,
              s.duration as service_duration, s.price as service_price
@@ -30,43 +31,43 @@ export const AppointmentModel = {
       JOIN services s ON a.service_id = s.id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: InValue[] = [];
 
     if (filters?.date) { sql += ' AND a.date = ?'; params.push(filters.date); }
     if (filters?.barber_id) { sql += ' AND a.barber_id = ?'; params.push(filters.barber_id); }
     if (filters?.status) { sql += ' AND a.status = ?'; params.push(filters.status); }
 
     sql += ' ORDER BY a.date, a.time';
-    return getDb().prepare(sql).all(...params) as AppointmentWithRelations[];
+    return all<AppointmentWithRelations>(sql, params);
   },
 
-  findById(id: number): AppointmentWithRelations | undefined {
-    return getDb().prepare(`
+  async findById(id: number): Promise<AppointmentWithRelations | undefined> {
+    return get<AppointmentWithRelations>(`
       SELECT a.*, b.name as barber_name, s.name as service_name,
              s.duration as service_duration, s.price as service_price
       FROM appointments a
       JOIN barbers b ON a.barber_id = b.id
       JOIN services s ON a.service_id = s.id
       WHERE a.id = ?
-    `).get(id) as AppointmentWithRelations | undefined;
+    `, [id]);
   },
 
-  create(data: Omit<Appointment, 'id' | 'status' | 'created_at'>): Appointment {
-    const result = getDb().prepare(`
+  async create(data: Omit<Appointment, 'id' | 'status' | 'created_at'>): Promise<Appointment> {
+    const result = await run(`
       INSERT INTO appointments (barber_id, service_id, client_name, client_phone, client_email, date, time)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(data.barber_id, data.service_id, data.client_name, data.client_phone, data.client_email ?? null, data.date, data.time);
-    return this.findById(result.lastInsertRowid as number) as Appointment;
+    `, [data.barber_id, data.service_id, data.client_name, data.client_phone, data.client_email ?? null, data.date, data.time]);
+    return this.findById(Number(result.lastInsertRowid)) as Promise<Appointment>;
   },
 
-  updateStatus(id: number, status: Appointment['status']): Appointment | undefined {
-    getDb().prepare('UPDATE appointments SET status = ? WHERE id = ?').run(status, id);
+  async updateStatus(id: number, status: Appointment['status']): Promise<Appointment | undefined> {
+    await run('UPDATE appointments SET status = ? WHERE id = ?', [status, id]);
     return this.findById(id);
   },
 
-  update(id: number, data: Partial<Appointment>): Appointment | undefined {
+  async update(id: number, data: Partial<Appointment>): Promise<Appointment | undefined> {
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: InValue[] = [];
 
     if (data.barber_id !== undefined) { fields.push('barber_id = ?'); values.push(data.barber_id); }
     if (data.service_id !== undefined) { fields.push('service_id = ?'); values.push(data.service_id); }
@@ -80,41 +81,41 @@ export const AppointmentModel = {
     if (fields.length === 0) return this.findById(id);
 
     values.push(id);
-    getDb().prepare(`UPDATE appointments SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+    await run(`UPDATE appointments SET ${fields.join(', ')} WHERE id = ?`, values);
     return this.findById(id);
   },
 
-  remove(id: number): boolean {
-    const result = getDb().prepare('DELETE FROM appointments WHERE id = ?').run(id);
+  async remove(id: number): Promise<boolean> {
+    const result = await run('DELETE FROM appointments WHERE id = ?', [id]);
     return result.changes > 0;
   },
 
-  getOccupiedSlots(barber_id: number, date: string): { time: string; duration: number }[] {
-    return getDb().prepare(`
+  async getOccupiedSlots(barber_id: number, date: string): Promise<{ time: string; duration: number }[]> {
+    return all<{ time: string; duration: number }>(`
       SELECT a.time, s.duration
       FROM appointments a
       JOIN services s ON a.service_id = s.id
       WHERE a.barber_id = ? AND a.date = ? AND a.status IN ('scheduled', 'confirmed')
       ORDER BY a.time
-    `).all(barber_id, date) as { time: string; duration: number }[];
+    `, [barber_id, date]);
   },
 
-  getTodayCount(): number {
-    const row = getDb().prepare(`
+  async getTodayCount(): Promise<number> {
+    const row = await get<{ count: number }>(`
       SELECT COUNT(*) as count FROM appointments WHERE date = date('now') AND status != 'cancelled'
-    `).get() as { count: number };
-    return row.count;
+    `);
+    return Number(row?.count ?? 0);
   },
 
-  getPendingCount(): number {
-    const row = getDb().prepare(`
+  async getPendingCount(): Promise<number> {
+    const row = await get<{ count: number }>(`
       SELECT COUNT(*) as count FROM appointments WHERE status = 'scheduled'
-    `).get() as { count: number };
-    return row.count;
+    `);
+    return Number(row?.count ?? 0);
   },
 
-  getUpcomingAppointments(limit: number = 5): AppointmentWithRelations[] {
-    return getDb().prepare(`
+  async getUpcomingAppointments(limit: number = 5): Promise<AppointmentWithRelations[]> {
+    return all<AppointmentWithRelations>(`
       SELECT a.*, b.name as barber_name, s.name as service_name,
              s.duration as service_duration, s.price as service_price
       FROM appointments a
@@ -123,6 +124,6 @@ export const AppointmentModel = {
       WHERE a.date >= date('now') AND a.status IN ('scheduled', 'confirmed')
       ORDER BY a.date, a.time
       LIMIT ?
-    `).all(limit) as AppointmentWithRelations[];
+    `, [limit]);
   }
 };

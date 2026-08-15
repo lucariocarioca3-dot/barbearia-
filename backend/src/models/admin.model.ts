@@ -1,4 +1,4 @@
-import { getDb } from '../database/connection';
+import { all, get, run } from '../database/connection';
 
 export interface Admin {
   id?: number;
@@ -9,11 +9,11 @@ export interface Admin {
 }
 
 export const AdminModel = {
-  findByEmail(email: string): Admin | undefined {
-    return getDb().prepare('SELECT * FROM admins WHERE email = ?').get(email) as Admin | undefined;
+  async findByEmail(email: string): Promise<Admin | undefined> {
+    return get<Admin>('SELECT * FROM admins WHERE email = ?', [email]);
   },
 
-  findById(id: number): Admin | undefined {
-    return getDb().prepare('SELECT id, name, email, created_at FROM admins WHERE id = ?').get(id) as Admin | undefined;
+  async findById(id: number): Promise<Admin | undefined> {
+    return get<Admin>('SELECT id, name, email, created_at FROM admins WHERE id = ?', [id]);
   }
 };

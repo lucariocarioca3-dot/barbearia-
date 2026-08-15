@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import express from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import crypto from 'crypto';
 import path from 'path';
@@ -15,31 +15,37 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
-const dataDir = process.env.DB_PATH
-  ? path.dirname(process.env.DB_PATH)
-  : isProduction
-    ? path.join(require('os').tmpdir(), 'barbearia')
-    : path.resolve(__dirname, '..', 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
+let initPromise: Promise<void> | undefined;
 
-initializeDatabase();
-
-if (isProduction) {
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@barbearia.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || crypto.randomBytes(8).toString('hex');
-  if (seedIfEmpty(adminEmail, adminPassword)) {
-    console.log(`Admin criado: ${adminEmail} / senha: ${adminPassword}`);
+function initialize(): Promise<void> {
+  if (!initPromise) {
+    initPromise = (async () => {
+      await initializeDatabase();
+      if (isProduction) {
+        const adminEmail = process.env.ADMIN_EMAIL || 'admin@barbearia.com';
+        const adminPassword = process.env.ADMIN_PASSWORD || crypto.randomBytes(8).toString('hex');
+        await seedIfEmpty(adminEmail, adminPassword);
+      }
+    })();
   }
+  return initPromise;
 }
 
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
+  origin: isProduction
     ? process.env.FRONTEND_URL || '*'
     : '*',
 }));
 app.use(express.json());
+
+app.use(async (_req: Request, _res: Response, next: NextFunction) => {
+  try {
+    await initialize();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/barbers', barberRoutes);
@@ -61,6 +67,11 @@ if (isProduction) {
     console.warn(`Diretório do frontend não encontrado: ${distDir}`);
   }
 }
+
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  console.error(err);
+  res.status(500).json({ error: 'Erro interno do servidor' });
+});
 
 if (require.main === module) {
   app.listen(PORT, () => {

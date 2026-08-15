@@ -1,4 +1,5 @@
-import { getDb } from '../database/connection';
+import { all, get, run } from '../database/connection';
+import type { InValue } from '@libsql/client';
 
 export interface Service {
   id?: number;
@@ -11,28 +12,29 @@ export interface Service {
 }
 
 export const ServiceModel = {
-  findAll(): Service[] {
-    return getDb().prepare('SELECT * FROM services WHERE active = 1 ORDER BY name').all() as Service[];
+  async findAll(): Promise<Service[]> {
+    return all<Service>('SELECT * FROM services WHERE active = 1 ORDER BY name');
   },
 
-  findAllWithInactive(): Service[] {
-    return getDb().prepare('SELECT * FROM services ORDER BY name').all() as Service[];
+  async findAllWithInactive(): Promise<Service[]> {
+    return all<Service>('SELECT * FROM services ORDER BY name');
   },
 
-  findById(id: number): Service | undefined {
-    return getDb().prepare('SELECT * FROM services WHERE id = ?').get(id) as Service | undefined;
+  async findById(id: number): Promise<Service | undefined> {
+    return get<Service>('SELECT * FROM services WHERE id = ?', [id]);
   },
 
-  create(data: Omit<Service, 'id' | 'active' | 'created_at'>): Service {
-    const result = getDb().prepare(
-      'INSERT INTO services (name, description, duration, price) VALUES (?, ?, ?, ?)'
-    ).run(data.name, data.description ?? null, data.duration, data.price);
-    return this.findById(result.lastInsertRowid as number) as Service;
+  async create(data: Omit<Service, 'id' | 'active' | 'created_at'>): Promise<Service> {
+    const result = await run(
+      'INSERT INTO services (name, description, duration, price) VALUES (?, ?, ?, ?)',
+      [data.name, data.description ?? null, data.duration, data.price]
+    );
+    return this.findById(Number(result.lastInsertRowid)) as Promise<Service>;
   },
 
-  update(id: number, data: Partial<Service>): Service | undefined {
+  async update(id: number, data: Partial<Service>): Promise<Service | undefined> {
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: InValue[] = [];
 
     if (data.name !== undefined) { fields.push('name = ?'); values.push(data.name); }
     if (data.description !== undefined) { fields.push('description = ?'); values.push(data.description); }
@@ -43,12 +45,12 @@ export const ServiceModel = {
     if (fields.length === 0) return this.findById(id);
 
     values.push(id);
-    getDb().prepare(`UPDATE services SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+    await run(`UPDATE services SET ${fields.join(', ')} WHERE id = ?`, values);
     return this.findById(id);
   },
 
-  remove(id: number): boolean {
-    const result = getDb().prepare('DELETE FROM services WHERE id = ?').run(id);
+  async remove(id: number): Promise<boolean> {
+    const result = await run('DELETE FROM services WHERE id = ?', [id]);
     return result.changes > 0;
   }
 };

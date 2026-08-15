@@ -1,4 +1,4 @@
-import { getDb } from '../database/connection';
+import { all, get, run, getDb } from '../database/connection';
 
 export interface WorkingHours {
   id?: number;
@@ -9,43 +9,43 @@ export interface WorkingHours {
 }
 
 export const WorkingHoursModel = {
-  findByBarberId(barberId: number): WorkingHours[] {
-    return getDb().prepare(
-      'SELECT * FROM working_hours WHERE barber_id = ? ORDER BY day_of_week, start_time'
-    ).all(barberId) as WorkingHours[];
+  async findByBarberId(barberId: number): Promise<WorkingHours[]> {
+    return all<WorkingHours>(
+      'SELECT * FROM working_hours WHERE barber_id = ? ORDER BY day_of_week, start_time',
+      [barberId]
+    );
   },
 
-  findByBarberAndDay(barberId: number, dayOfWeek: number): WorkingHours | undefined {
-    return getDb().prepare(
-      'SELECT * FROM working_hours WHERE barber_id = ? AND day_of_week = ?'
-    ).get(barberId, dayOfWeek) as WorkingHours | undefined;
+  async findByBarberAndDay(barberId: number, dayOfWeek: number): Promise<WorkingHours | undefined> {
+    return get<WorkingHours>(
+      'SELECT * FROM working_hours WHERE barber_id = ? AND day_of_week = ?',
+      [barberId, dayOfWeek]
+    );
   },
 
-  upsert(data: WorkingHours): WorkingHours {
+  async upsert(data: WorkingHours): Promise<WorkingHours> {
     if (data.id) {
-      getDb().prepare(
-        'UPDATE working_hours SET barber_id = ?, day_of_week = ?, start_time = ?, end_time = ? WHERE id = ?'
-      ).run(data.barber_id, data.day_of_week, data.start_time, data.end_time, data.id);
+      await run(
+        'UPDATE working_hours SET barber_id = ?, day_of_week = ?, start_time = ?, end_time = ? WHERE id = ?',
+        [data.barber_id, data.day_of_week, data.start_time, data.end_time, data.id]
+      );
       return data;
     } else {
-      const result = getDb().prepare(
-        'INSERT INTO working_hours (barber_id, day_of_week, start_time, end_time) VALUES (?, ?, ?, ?)'
-      ).run(data.barber_id, data.day_of_week, data.start_time, data.end_time);
-      return { ...data, id: result.lastInsertRowid as number };
+      const result = await run(
+        'INSERT INTO working_hours (barber_id, day_of_week, start_time, end_time) VALUES (?, ?, ?, ?)',
+        [data.barber_id, data.day_of_week, data.start_time, data.end_time]
+      );
+      return { ...data, id: Number(result.lastInsertRowid) };
     }
   },
 
-  setForBarber(barberId: number, hours: Omit<WorkingHours, 'id' | 'barber_id'>[]): void {
-    const db = getDb();
-    const transaction = db.transaction(() => {
-      db.prepare('DELETE FROM working_hours WHERE barber_id = ?').run(barberId);
-      const insert = db.prepare(
-        'INSERT INTO working_hours (barber_id, day_of_week, start_time, end_time) VALUES (?, ?, ?, ?)'
-      );
-      for (const h of hours) {
-        insert.run(barberId, h.day_of_week, h.start_time, h.end_time);
-      }
-    });
-    transaction();
+  async setForBarber(barberId: number, hours: Omit<WorkingHours, 'id' | 'barber_id'>[]): Promise<void> {
+    await getDb().batch([
+      { sql: 'DELETE FROM working_hours WHERE barber_id = ?', args: [barberId] },
+      ...hours.map(h => ({
+        sql: 'INSERT INTO working_hours (barber_id, day_of_week, start_time, end_time) VALUES (?, ?, ?, ?)',
+        args: [barberId, h.day_of_week, h.start_time, h.end_time],
+      })),
+    ]);
   }
 };

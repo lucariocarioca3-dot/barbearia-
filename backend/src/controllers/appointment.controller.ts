@@ -15,23 +15,23 @@ function minutesToTime(minutes: number): string {
 }
 
 export const AppointmentController = {
-  list(req: Request, res: Response): void {
+  async list(req: Request, res: Response): Promise<void> {
     const { date, barber_id, status } = req.query;
     const filters: any = {};
     if (date) filters.date = date as string;
     if (barber_id) filters.barber_id = Number(barber_id);
     if (status) filters.status = status as string;
-    const appointments = AppointmentModel.findAll(filters);
+    const appointments = await AppointmentModel.findAll(filters);
     res.json(appointments);
   },
 
-  getById(req: Request, res: Response): void {
-    const appointment = AppointmentModel.findById(Number(req.params.id));
+  async getById(req: Request, res: Response): Promise<void> {
+    const appointment = await AppointmentModel.findById(Number(req.params.id));
     if (!appointment) { res.status(404).json({ error: 'Agendamento não encontrado' }); return; }
     res.json(appointment);
   },
 
-  create(req: Request, res: Response): void {
+  async create(req: Request, res: Response): Promise<void> {
     const { barber_id, service_id, client_name, client_phone, client_email, date, time } = req.body;
 
     if (!barber_id || !service_id || !client_name || !client_phone || !date || !time) {
@@ -39,10 +39,10 @@ export const AppointmentController = {
       return;
     }
 
-    const service = ServiceModel.findById(service_id);
+    const service = await ServiceModel.findById(service_id);
     if (!service) { res.status(404).json({ error: 'Serviço não encontrado' }); return; }
 
-    const occupied = AppointmentModel.getOccupiedSlots(barber_id, date);
+    const occupied = await AppointmentModel.getOccupiedSlots(barber_id, date);
     const newStart = timeToMinutes(time);
     const newEnd = newStart + service.duration;
 
@@ -55,38 +55,38 @@ export const AppointmentController = {
       }
     }
 
-    const appointment = AppointmentModel.create({
+    const appointment = await AppointmentModel.create({
       barber_id, service_id, client_name, client_phone, client_email: client_email ?? null, date, time
     });
 
     res.status(201).json(appointment);
   },
 
-  updateStatus(req: Request, res: Response): void {
+  async updateStatus(req: Request, res: Response): Promise<void> {
     const { status } = req.body;
     const validStatuses = ['scheduled', 'confirmed', 'cancelled', 'completed'];
     if (!validStatuses.includes(status)) {
       res.status(400).json({ error: 'Status inválido' });
       return;
     }
-    const appointment = AppointmentModel.updateStatus(Number(req.params.id), status);
+    const appointment = await AppointmentModel.updateStatus(Number(req.params.id), status);
     if (!appointment) { res.status(404).json({ error: 'Agendamento não encontrado' }); return; }
     res.json(appointment);
   },
 
-  update(req: Request, res: Response): void {
-    const appointment = AppointmentModel.update(Number(req.params.id), req.body);
+  async update(req: Request, res: Response): Promise<void> {
+    const appointment = await AppointmentModel.update(Number(req.params.id), req.body);
     if (!appointment) { res.status(404).json({ error: 'Agendamento não encontrado' }); return; }
     res.json(appointment);
   },
 
-  remove(req: Request, res: Response): void {
-    const removed = AppointmentModel.remove(Number(req.params.id));
+  async remove(req: Request, res: Response): Promise<void> {
+    const removed = await AppointmentModel.remove(Number(req.params.id));
     if (!removed) { res.status(404).json({ error: 'Agendamento não encontrado' }); return; }
     res.status(204).send();
   },
 
-  availableSlots(req: Request, res: Response): void {
+  async availableSlots(req: Request, res: Response): Promise<void> {
     const { barber_id, date, service_id } = req.query;
 
     if (!barber_id || !date || !service_id) {
@@ -97,13 +97,13 @@ export const AppointmentController = {
     const bId = Number(barber_id);
     const sId = Number(service_id);
 
-    const service = ServiceModel.findById(sId);
+    const service = await ServiceModel.findById(sId);
     if (!service) { res.status(404).json({ error: 'Serviço não encontrado' }); return; }
 
     const dateObj = new Date(date as string);
     const dayOfWeek = dateObj.getUTCDay();
 
-    const workingHours = WorkingHoursModel.findByBarberAndDay(bId, dayOfWeek);
+    const workingHours = await WorkingHoursModel.findByBarberAndDay(bId, dayOfWeek);
     if (!workingHours) {
       res.json({ slots: [] });
       return;
@@ -114,7 +114,7 @@ export const AppointmentController = {
     const slotDuration = service.duration;
     const interval = 15;
 
-    const occupied = AppointmentModel.getOccupiedSlots(bId, date as string);
+    const occupied = await AppointmentModel.getOccupiedSlots(bId, date as string);
 
     const slots: string[] = [];
     let current = startMinutes;
@@ -151,10 +151,10 @@ export const AppointmentController = {
     res.json({ slots: filteredSlots });
   },
 
-  dashboard(_req: Request, res: Response): void {
-    const todayCount = AppointmentModel.getTodayCount();
-    const pendingCount = AppointmentModel.getPendingCount();
-    const upcoming = AppointmentModel.getUpcomingAppointments(5);
+  async dashboard(_req: Request, res: Response): Promise<void> {
+    const todayCount = await AppointmentModel.getTodayCount();
+    const pendingCount = await AppointmentModel.getPendingCount();
+    const upcoming = await AppointmentModel.getUpcomingAppointments(5);
     res.json({ todayCount, pendingCount, upcoming });
   }
 };

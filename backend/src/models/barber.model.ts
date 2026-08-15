@@ -1,4 +1,5 @@
-import { getDb } from '../database/connection';
+import { all, get, run } from '../database/connection';
+import type { InValue } from '@libsql/client';
 
 export interface Barber {
   id?: number;
@@ -9,26 +10,26 @@ export interface Barber {
 }
 
 export const BarberModel = {
-  findAll(): Barber[] {
-    return getDb().prepare('SELECT * FROM barbers WHERE active = 1 ORDER BY name').all() as Barber[];
+  async findAll(): Promise<Barber[]> {
+    return all<Barber>('SELECT * FROM barbers WHERE active = 1 ORDER BY name');
   },
 
-  findAllWithInactive(): Barber[] {
-    return getDb().prepare('SELECT * FROM barbers ORDER BY name').all() as Barber[];
+  async findAllWithInactive(): Promise<Barber[]> {
+    return all<Barber>('SELECT * FROM barbers ORDER BY name');
   },
 
-  findById(id: number): Barber | undefined {
-    return getDb().prepare('SELECT * FROM barbers WHERE id = ?').get(id) as Barber | undefined;
+  async findById(id: number): Promise<Barber | undefined> {
+    return get<Barber>('SELECT * FROM barbers WHERE id = ?', [id]);
   },
 
-  create(data: Omit<Barber, 'id' | 'active' | 'created_at'>): Barber {
-    const result = getDb().prepare('INSERT INTO barbers (name, photo) VALUES (?, ?)').run(data.name, data.photo ?? null);
-    return this.findById(result.lastInsertRowid as number) as Barber;
+  async create(data: Omit<Barber, 'id' | 'active' | 'created_at'>): Promise<Barber> {
+    const result = await run('INSERT INTO barbers (name, photo) VALUES (?, ?)', [data.name, data.photo ?? null]);
+    return this.findById(Number(result.lastInsertRowid)) as Promise<Barber>;
   },
 
-  update(id: number, data: Partial<Barber>): Barber | undefined {
+  async update(id: number, data: Partial<Barber>): Promise<Barber | undefined> {
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: InValue[] = [];
 
     if (data.name !== undefined) { fields.push('name = ?'); values.push(data.name); }
     if (data.photo !== undefined) { fields.push('photo = ?'); values.push(data.photo); }
@@ -37,12 +38,12 @@ export const BarberModel = {
     if (fields.length === 0) return this.findById(id);
 
     values.push(id);
-    getDb().prepare(`UPDATE barbers SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+    await run(`UPDATE barbers SET ${fields.join(', ')} WHERE id = ?`, values);
     return this.findById(id);
   },
 
-  remove(id: number): boolean {
-    const result = getDb().prepare('DELETE FROM barbers WHERE id = ?').run(id);
+  async remove(id: number): Promise<boolean> {
+    const result = await run('DELETE FROM barbers WHERE id = ?', [id]);
     return result.changes > 0;
   }
 };

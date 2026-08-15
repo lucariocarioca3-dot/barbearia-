@@ -6,7 +6,7 @@ import { AdminModel } from '../models/admin.model';
 const JWT_SECRET = process.env.JWT_SECRET || 'barbearia-secret-key';
 
 export const AuthController = {
-  login(req: Request, res: Response): void {
+  async login(req: Request, res: Response): Promise<void> {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -14,7 +14,7 @@ export const AuthController = {
       return;
     }
 
-    const admin = AdminModel.findByEmail(email);
+    const admin = await AdminModel.findByEmail(email);
     if (!admin || !bcrypt.compareSync(password, admin.password)) {
       res.status(401).json({ error: 'Email ou senha inválidos' });
       return;
@@ -28,9 +28,9 @@ export const AuthController = {
     });
   },
 
-  me(req: Request, res: Response): void {
+  async me(req: Request, res: Response): Promise<void> {
     const adminId = (req as any).adminId;
-    const admin = AdminModel.findById(adminId);
+    const admin = await AdminModel.findById(adminId);
     if (!admin) {
       res.status(404).json({ error: 'Admin não encontrado' });
       return;

@@ -3,51 +3,51 @@ import { BarberModel } from '../models/barber.model';
 import { WorkingHoursModel } from '../models/workingHours.model';
 
 export const BarberController = {
-  list(_req: Request, res: Response): void {
-    const barbers = BarberModel.findAll();
+  async list(_req: Request, res: Response): Promise<void> {
+    const barbers = await BarberModel.findAll();
     res.json(barbers);
   },
 
-  listAll(_req: Request, res: Response): void {
-    const barbers = BarberModel.findAllWithInactive();
+  async listAll(_req: Request, res: Response): Promise<void> {
+    const barbers = await BarberModel.findAllWithInactive();
     res.json(barbers);
   },
 
-  getById(req: Request, res: Response): void {
-    const barber = BarberModel.findById(Number(req.params.id));
+  async getById(req: Request, res: Response): Promise<void> {
+    const barber = await BarberModel.findById(Number(req.params.id));
     if (!barber) { res.status(404).json({ error: 'Barbeiro não encontrado' }); return; }
     res.json(barber);
   },
 
-  create(req: Request, res: Response): void {
+  async create(req: Request, res: Response): Promise<void> {
     const { name, photo } = req.body;
     if (!name) { res.status(400).json({ error: 'Nome é obrigatório' }); return; }
-    const barber = BarberModel.create({ name, photo: photo ?? null });
+    const barber = await BarberModel.create({ name, photo: photo ?? null });
     res.status(201).json(barber);
   },
 
-  update(req: Request, res: Response): void {
-    const barber = BarberModel.update(Number(req.params.id), req.body);
+  async update(req: Request, res: Response): Promise<void> {
+    const barber = await BarberModel.update(Number(req.params.id), req.body);
     if (!barber) { res.status(404).json({ error: 'Barbeiro não encontrado' }); return; }
     res.json(barber);
   },
 
-  remove(req: Request, res: Response): void {
-    const removed = BarberModel.remove(Number(req.params.id));
+  async remove(req: Request, res: Response): Promise<void> {
+    const removed = await BarberModel.remove(Number(req.params.id));
     if (!removed) { res.status(404).json({ error: 'Barbeiro não encontrado' }); return; }
     res.status(204).send();
   },
 
-  getHours(req: Request, res: Response): void {
-    const hours = WorkingHoursModel.findByBarberId(Number(req.params.id));
+  async getHours(req: Request, res: Response): Promise<void> {
+    const hours = await WorkingHoursModel.findByBarberId(Number(req.params.id));
     res.json(hours);
   },
 
-  setHours(req: Request, res: Response): void {
+  async setHours(req: Request, res: Response): Promise<void> {
     const { hours } = req.body;
     if (!Array.isArray(hours)) { res.status(400).json({ error: 'hours deve ser um array' }); return; }
-    WorkingHoursModel.setForBarber(Number(req.params.id), hours);
-    const updated = WorkingHoursModel.findByBarberId(Number(req.params.id));
+    await WorkingHoursModel.setForBarber(Number(req.params.id), hours);
+    const updated = await WorkingHoursModel.findByBarberId(Number(req.params.id));
     res.json(updated);
   }
 };

@@ -1,32 +1,71 @@
-import Database from 'better-sqlite3';
+import { createClient, Client, InValue } from '@libsql/client';
+import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import fs from 'fs';
 
-const dbPath = process.env.DB_PATH
-  || (process.env.NODE_ENV === 'production'
+let db: Client;
+
+function resolveUrl(): string {
+  if (process.env.TURSO_DATABASE_URL) {
+    return process.env.TURSO_DATABASE_URL;
+  }
+  if (process.env.DB_PATH) {
+    return `file:${process.env.DB_PATH}`;
+  }
+  const localPath = process.env.NODE_ENV === 'production'
     ? path.join(os.tmpdir(), 'barbearia', 'barbearia.db')
-    : path.resolve(__dirname, '..', '..', 'data', 'barbearia.db'));
-const dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+    : path.resolve(__dirname, '..', '..', 'data', 'barbearia.db');
+  const dbDir = path.dirname(localPath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+  return `file:${localPath}`;
 }
 
-let db: Database.Database;
-
-export function getDb(): Database.Database {
+export function getDb(): Client {
   if (!db) {
-    db = new Database(dbPath);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
+    db = createClient({
+      url: resolveUrl(),
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    });
   }
   return db;
 }
 
-export function initializeDatabase(): void {
+export async function all<T = Record<string, unknown>>(sql: string, params: InValue[] = []): Promise<T[]> {
+  const result = await getDb().execute({ sql, args: params });
+  return result.rows as unknown as T[];
+}
+
+export async function get<T = Record<string, unknown>>(sql: string, params: InValue[] = []): Promise<T | undefined> {
+  const result = await getDb().execute({ sql, args: params });
+  return result.rows[0] as T | undefined;
+}
+
+export interface RunResult {
+  changes: number;
+  lastInsertRowid: number;
+}
+
+export async function run(sql: string, params: InValue[] = []): Promise<RunResult> {
+  const result = await getDb().execute({ sql, args: params });
+  return {
+    changes: Number(result.rowsAffected),
+    lastInsertRowid: Number(result.lastInsertRowid),
+  };
+}
+
+export async function initializeDatabase(): Promise<void> {
   const database = getDb();
 
-  database.exec(`
+  try {
+    await getDb().execute('PRAGMA journal_mode = WAL');
+    await getDb().execute('PRAGMA foreign_keys = ON');
+  } catch {
+    // pragmas são ignorados em bancos remotos
+  }
+
+  await database.executeMultiple(`
     CREATE TABLE IF NOT EXISTS admins (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
