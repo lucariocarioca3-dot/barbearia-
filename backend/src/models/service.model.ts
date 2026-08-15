@@ -1,5 +1,5 @@
 import { all, get, run } from '../database/connection';
-import type { InValue } from '@libsql/client';
+import type { SqlValue } from '../database/connection';
 
 export interface Service {
   id?: number;
@@ -25,16 +25,16 @@ export const ServiceModel = {
   },
 
   async create(data: Omit<Service, 'id' | 'active' | 'created_at'>): Promise<Service> {
-    const result = await run(
-      'INSERT INTO services (name, description, duration, price) VALUES (?, ?, ?, ?)',
+    const row = await get<{ id: number }>(
+      'INSERT INTO services (name, description, duration, price) VALUES (?, ?, ?, ?) RETURNING id',
       [data.name, data.description ?? null, data.duration, data.price]
     );
-    return this.findById(Number(result.lastInsertRowid)) as Promise<Service>;
+    return this.findById(Number(row?.id)) as Promise<Service>;
   },
 
   async update(id: number, data: Partial<Service>): Promise<Service | undefined> {
     const fields: string[] = [];
-    const values: InValue[] = [];
+    const values: SqlValue[] = [];
 
     if (data.name !== undefined) { fields.push('name = ?'); values.push(data.name); }
     if (data.description !== undefined) { fields.push('description = ?'); values.push(data.description); }

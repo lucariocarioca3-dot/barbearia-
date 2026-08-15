@@ -1,5 +1,5 @@
 import { all, get, run } from '../database/connection';
-import type { InValue } from '@libsql/client';
+import type { SqlValue } from '../database/connection';
 
 export interface Appointment {
   id?: number;
@@ -31,7 +31,7 @@ export const AppointmentModel = {
       JOIN services s ON a.service_id = s.id
       WHERE 1=1
     `;
-    const params: InValue[] = [];
+    const params: SqlValue[] = [];
 
     if (filters?.date) { sql += ' AND a.date = ?'; params.push(filters.date); }
     if (filters?.barber_id) { sql += ' AND a.barber_id = ?'; params.push(filters.barber_id); }
@@ -53,11 +53,12 @@ export const AppointmentModel = {
   },
 
   async create(data: Omit<Appointment, 'id' | 'status' | 'created_at'>): Promise<Appointment> {
-    const result = await run(`
+    const row = await get<{ id: number }>(`
       INSERT INTO appointments (barber_id, service_id, client_name, client_phone, client_email, date, time)
       VALUES (?, ?, ?, ?, ?, ?, ?)
+      RETURNING id
     `, [data.barber_id, data.service_id, data.client_name, data.client_phone, data.client_email ?? null, data.date, data.time]);
-    return this.findById(Number(result.lastInsertRowid)) as Promise<Appointment>;
+    return this.findById(Number(row?.id)) as Promise<Appointment>;
   },
 
   async updateStatus(id: number, status: Appointment['status']): Promise<Appointment | undefined> {
@@ -67,7 +68,7 @@ export const AppointmentModel = {
 
   async update(id: number, data: Partial<Appointment>): Promise<Appointment | undefined> {
     const fields: string[] = [];
-    const values: InValue[] = [];
+    const values: SqlValue[] = [];
 
     if (data.barber_id !== undefined) { fields.push('barber_id = ?'); values.push(data.barber_id); }
     if (data.service_id !== undefined) { fields.push('service_id = ?'); values.push(data.service_id); }
@@ -102,7 +103,7 @@ export const AppointmentModel = {
 
   async getTodayCount(): Promise<number> {
     const row = await get<{ count: number }>(`
-      SELECT COUNT(*) as count FROM appointments WHERE date = date('now') AND status != 'cancelled'
+      SELECT COUNT(*) as count FROM appointments WHERE date = CURRENT_DATE AND status != 'cancelled'
     `);
     return Number(row?.count ?? 0);
   },
@@ -121,7 +122,7 @@ export const AppointmentModel = {
       FROM appointments a
       JOIN barbers b ON a.barber_id = b.id
       JOIN services s ON a.service_id = s.id
-      WHERE a.date >= date('now') AND a.status IN ('scheduled', 'confirmed')
+      WHERE a.date >= CURRENT_DATE AND a.status IN ('scheduled', 'confirmed')
       ORDER BY a.date, a.time
       LIMIT ?
     `, [limit]);

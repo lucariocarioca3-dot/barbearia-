@@ -1,5 +1,5 @@
 import { all, get, run } from '../database/connection';
-import type { InValue } from '@libsql/client';
+import type { SqlValue } from '../database/connection';
 
 export interface Barber {
   id?: number;
@@ -23,13 +23,13 @@ export const BarberModel = {
   },
 
   async create(data: Omit<Barber, 'id' | 'active' | 'created_at'>): Promise<Barber> {
-    const result = await run('INSERT INTO barbers (name, photo) VALUES (?, ?)', [data.name, data.photo ?? null]);
-    return this.findById(Number(result.lastInsertRowid)) as Promise<Barber>;
+    const row = await get<{ id: number }>('INSERT INTO barbers (name, photo) VALUES (?, ?) RETURNING id', [data.name, data.photo ?? null]);
+    return this.findById(Number(row?.id)) as Promise<Barber>;
   },
 
   async update(id: number, data: Partial<Barber>): Promise<Barber | undefined> {
     const fields: string[] = [];
-    const values: InValue[] = [];
+    const values: SqlValue[] = [];
 
     if (data.name !== undefined) { fields.push('name = ?'); values.push(data.name); }
     if (data.photo !== undefined) { fields.push('photo = ?'); values.push(data.photo); }

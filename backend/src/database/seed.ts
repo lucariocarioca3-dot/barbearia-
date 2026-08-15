@@ -16,22 +16,21 @@ export async function seedIfEmpty(adminEmail: string, adminPassword: string): Pr
       'Administrador', adminEmail, hashedPassword
     ]);
   } catch (err: any) {
-    if (String(err?.message ?? err).toUpperCase().includes('UNIQUE')) {
+    const msg = String(err?.message ?? err);
+    if (msg.includes('23505') || msg.toUpperCase().includes('UNIQUE')) {
       console.log('Admin já existe. Pulando seed.');
       return false;
     }
     throw err;
   }
 
-  const barbers = [
-    { name: 'Carlos Silva', photo: null },
-    { name: 'Rafael Oliveira', photo: null },
-    { name: 'Thiago Santos', photo: null },
-  ];
+  const barberNames = ['Carlos Silva', 'Rafael Oliveira', 'Thiago Santos'];
+  const barberIds: number[] = [];
 
-  for (const b of barbers) {
+  for (const name of barberNames) {
     try {
-      await run('INSERT INTO barbers (name, photo) VALUES (?, ?)', [b.name, b.photo]);
+      const row = await get<{ id: number }>('INSERT INTO barbers (name, photo) VALUES (?, ?) RETURNING id', [name, null]);
+      barberIds.push(Number(row?.id));
     } catch {
       // barbeiro já existente
     }
@@ -66,7 +65,7 @@ export async function seedIfEmpty(adminEmail: string, adminPassword: string): Pr
     { day: 6, start: '08:00', end: '18:00' },
   ];
 
-  for (let barberId = 1; barberId <= 3; barberId++) {
+  for (const barberId of barberIds) {
     for (const d of days) {
       try {
         await run('INSERT INTO working_hours (barber_id, day_of_week, start_time, end_time) VALUES (?, ?, ?, ?)', [
