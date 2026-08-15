@@ -1,8 +1,21 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const heroVideo = '/imagens/barbearia.mp4'
+const heroVideoWebm = '/imagens/barbearia.webm'
+const videoReady = ref(false)
+const videoError = ref(false)
+
+function onVideoCanPlay() {
+  videoReady.value = true
+}
+
+function onVideoError() {
+  videoError.value = true
+  videoReady.value = true
+}
 </script>
 
 <template>
@@ -13,15 +26,21 @@ const heroVideo = '/imagens/barbearia.mp4'
       muted
       loop
       playsinline
-      preload="auto"
+      preload="metadata"
       poster="/imagens/hero-poster.png"
+      @canplay="onVideoCanPlay"
+      @error="onVideoError"
     >
+      <source :src="heroVideoWebm" type="video/webm" />
       <source :src="heroVideo" type="video/mp4" />
       Seu navegador não suporta vídeo.
     </video>
     <div class="hero-overlay"></div>
+    <div v-if="!videoReady" class="hero-loading" aria-hidden="true">
+      <div class="spinner"></div>
+    </div>
     <div class="hero-content">
-      <h1>Corte &amp; Estilo</h1>
+      <h1>Corte & Estilo</h1>
       <p>Agende seu horário com os melhores barbeiros da cidade. Praticidade e estilo em um só lugar.</p>
       <div class="hero-actions">
         <button class="btn btn-primary" @click="router.push('/agendar')">
