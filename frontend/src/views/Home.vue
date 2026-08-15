@@ -14,7 +14,7 @@ const heroVideo = '/imagens/barbearia.mp4'
       loop
       playsinline
       preload="auto"
-      poster="/imagens/barbearia.mp4"
+      poster="/imagens/hero-poster.png"
     >
       <source :src="heroVideo" type="video/mp4" />
       Seu navegador não suporta vídeo.
