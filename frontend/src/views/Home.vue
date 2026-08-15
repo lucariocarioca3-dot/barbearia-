@@ -30,7 +30,7 @@ function onVideoError() {
       @canplay="onVideoCanPlay"
       @error="onVideoError"
     >
-      <source :src="heroVideo" type="video/mp4" />
+      <source :src="heroVideo" />
       Seu navegador não suporta vídeo.
     </video>
     <div class="hero-overlay"></div>
