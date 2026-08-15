@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -7,19 +7,56 @@ const heroVideo = 'https://res.cloudinary.com/znu84vmw/video/upload/q_auto,f_aut
 const videoReady = ref(false)
 const videoError = ref(false)
 
-function onVideoCanPlay() {
+const videoEl = ref<HTMLVideoElement | null>(null)
+let fallbackTimer: ReturnType<typeof setTimeout> | null = null
+
+function setReady() {
+  if (videoReady.value) return
   videoReady.value = true
+  if (fallbackTimer) {
+    clearTimeout(fallbackTimer)
+    fallbackTimer = null
+  }
+}
+
+function onVideoCanPlay() {
+  setReady()
+}
+
+function onVideoLoadedData() {
+  setReady()
 }
 
 function onVideoError() {
   videoError.value = true
-  videoReady.value = true
+  setReady()
 }
+
+function startFallback() {
+  fallbackTimer = setTimeout(() => {
+    setReady()
+  }, 3000)
+}
+
+onMounted(() => {
+  if (videoEl.value) {
+    if (videoEl.value.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      setReady()
+    } else {
+      startFallback()
+    }
+  }
+})
+
+onUnmounted(() => {
+  if (fallbackTimer) clearTimeout(fallbackTimer)
+})
 </script>
 
 <template>
   <section class="hero">
     <video
+      ref="videoEl"
       class="hero-video"
       autoplay
       muted
@@ -28,6 +65,7 @@ function onVideoError() {
       preload="metadata"
       poster="/imagens/hero-poster.png"
       @canplay="onVideoCanPlay"
+      @loadeddata="onVideoLoadedData"
       @error="onVideoError"
     >
       <source :src="heroVideo" />
