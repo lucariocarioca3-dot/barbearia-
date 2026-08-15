@@ -148,6 +148,12 @@ input, select, textarea {
   color: var(--black);
 }
 
+.theme-icon {
+  display: inline-block;
+  height: 20px;
+  width: 20px;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;

@@ -38,9 +38,9 @@ function closeMenu() {
           <router-link to="/admin/servicos" @click="closeMenu">Serviços</router-link>
           <router-link to="/" @click="closeMenu" class="nav-link-home">← Site</router-link>
         </template>
-        <button class="theme-btn" @click="theme.toggle" :title="theme.isDark ? 'Modo claro' : 'Modo escuro'">
-          <span v-if="theme.isDark">&#9728;&#65039;</span>
-          <span v-else>&#127769;</span>
+        <button class="theme-btn" @click="theme.toggle" :title="theme.isDark ? 'Modo claro' : 'Modo escuro'" aria-label="Alternar tema">
+          <img v-if="theme.isDark" src="/icons-sun.svg" alt="Modo claro" class="theme-icon" />
+          <img v-else src="/icons-moon.svg" alt="Modo escuro" class="theme-icon" />
         </button>
       </div>
     </div>
