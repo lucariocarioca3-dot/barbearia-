@@ -4,7 +4,7 @@ import AppNavbar from './components/AppNavbar.vue'
 
 <template>
   <AppNavbar />
-  <main class="container" style="min-height: 80vh; padding-top: 30px; padding-bottom: 60px;">
+  <main class="container" style="min-height: 80vh; padding-bottom: 60px;">
     <router-view />
   </main>
   <footer>
