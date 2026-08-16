@@ -152,6 +152,7 @@ input, select, textarea {
   display: inline-block;
   height: 20px;
   width: 20px;
+  stroke: currentColor;
 }
 
 /* Buttons */
