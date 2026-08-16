@@ -103,8 +103,12 @@ input, select, textarea {
   gap: 10px;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--black);
   letter-spacing: -0.5px;
+}
+
+.dark .navbar-brand {
+  color: #ffffff;
 }
 
 .navbar-logo {
@@ -677,9 +681,13 @@ footer {
   text-align: center;
   padding: 32px 0;
   border-top: 1px solid var(--gray-200);
-  color: #ffffff;
+  color: var(--gray-600);
   font-size: 0.85rem;
   transition: border-color var(--transition);
+}
+
+.dark footer {
+  color: #ffffff;
 }
 
 .dark .badge-scheduled {
